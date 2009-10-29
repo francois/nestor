@@ -5,6 +5,9 @@ end
 RAILS_ENV = "test" unless defined?(RAILS_ENV)
 log "Entering #{RAILS_ENV.inspect} environment"
 
+log "Creating tmp/ if it doesn't exist"
+Dir.mkdir("tmp") unless File.directory?("tmp")
+
 log "Preloading test/test_helper.rb"
 start_load_at = Time.now
 $LOAD_PATH.unshift "test" unless $LOAD_PATH.include?("test")
@@ -13,23 +16,30 @@ require "test_helper"
 end_load_at = Time.now
 log "Waiting for changes (saving #{end_load_at - start_load_at} seconds per run)..."
 
-def sendoff(timeout=0.8, path="tmp/.nestor-sendoff")
+def sendoff(timeout=0.8, path="tmp/nestor-sendoff")
   Thread.start(timeout, path) do |timeout, path|
+    log "Sendoff pending #{timeout}..."
     sleep timeout
     File.open(path, "w") {|io| io.write(rand.to_s)}
+    log "Sendoff fired on #{path}"
   end
+end
+
+def changed!(filename)
+  @machine.changed! filename
+  sendoff
 end
 
 watch 'app/models/(.+)\.rb' do |md|
   test_file = "test/unit/#{md[1]}_test.rb"
   log "#{md[0].inspect} => #{test_file.inspect}"
-  @machine.changed! test_file if File.file?(test_file)
+  changed! test_file if File.file?(test_file)
 end
 
 watch 'app/controllers/(.+)\.rb' do |md|
   test_file = "test/functional/#{md[1]}_test.rb"
   log "#{md[0].inspect} => #{test_file.inspect}"
-  @machine.changed! test_file if File.file?(test_file)
+  changed! test_file if File.file?(test_file)
 end
 
 # It might be possible to run focused tests with the view name
@@ -38,7 +48,7 @@ watch 'app/views/(.+)' do |md|
   path     = segments[0..-2]
   test_file = "test/functional/#{path.join("/")}_controller_test.rb"
   log "#{md[0].inspect} => #{test_file.inspect}"
-  @machine.changed! test_file if File.file?(test_file)
+  changed! test_file if File.file?(test_file)
 end
 
 watch 'config/' do |md|
@@ -51,16 +61,17 @@ end
 
 watch 'test/(?:unit|functional|integration|performance)/.*' do |md|
   log "#{md[0].inspect} => #{md[0].inspect}"
-  @machine.changed! md[0]
+  changed! md[0]
 end
 
-watch 'tmp/.nestor-results.yml' do |md|
+watch 'tmp/nestor-results.yml' do |md|
   info = YAML.load_file(md[0])
+  log "New results in: #{info.inspect}"
   failures = info["failures"]
-  @machine.send("mark_#{info["status"]}", failures.values.uniq, failures.keys)
+  @machine.send("run_#{info["status"]}!", failures.values.uniq, failures.keys)
 end
 
-watch 'tmp/.nestor-sendoff' do |md|
+watch 'tmp/nestor-sendoff' do |_|
   log "Sendoff"
   @machine.run!
 end
