@@ -1,0 +1,40 @@
+
+* 1.9 compatibility
+
+* sometimes an action is fired without a file being saved
+  * buffer flushing issue?
+  * libev issue?
+  * probably fixed with event type handling update, which ignores atime
+    updates by defaults
+
+* when a file is saved twice quickly, subsequent events are ignored.
+  * seems like rev/libev drops the file watch
+
+* test on other platforms
+  x mswin
+  x cygwin
+  * bsd
+  * osx
+  * solaris
+
+* write a few prepackaged scripts
+  * post on gists
+  * post links on wiki
+  * post main links in readme
+
+* eval script within own context?
+  * use case: using <tt>path</tt> within script accesses Script#path
+
+* respond to different file events?
+  * modified
+  * created
+  * deleted
+  * etc.
+  * watch(pattern, EVENT, &action)
+  * use case: a script updates a manifest file when a file is deleted
+
+* memory profiling / benchmarks
+
+* version.watchr
+  * sync versions (gemspec & Watchr::VERSION)
+
