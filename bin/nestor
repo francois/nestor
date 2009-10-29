@@ -1,0 +1,3 @@
+#!/usr/bin/env ruby
+require "nestor/cli"
+Nestor::Cli.start
