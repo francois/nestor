@@ -27,8 +27,12 @@ module Nestor
 
       Watchr.options.debug = options[:debug]
 
-      puts "Launching..."
-      Nestor::Watchers::Rails.run(:script => options[:script])
+      if options[:script] then
+        puts "Launching with custom script #{options[:script].inspect}"
+      else
+        puts "Launching..."
+      end
+      Nestor::Watchers::Rails.run(:script => Pathname.new(options[:script]))
     end
 
     desc("customize PATH", <<-EODESC.gsub(/^\s{6}/, ""))
