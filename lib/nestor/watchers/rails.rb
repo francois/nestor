@@ -24,11 +24,19 @@ module Nestor
         Watchr::Controller.new(script, Watchr.handler.new).run
       end
 
+      def self.path_to_script
+        default_script_path
+      end
+
       private
+
+      def self.default_script_path
+        Pathname.new(File.dirname(__FILE__) + "/rails_script.rb") 
+      end
 
       def self.instantiate_script(path) #:nodoc:
         # Use the default if none provided
-        path = Pathname.new(File.dirname(__FILE__) + "/rails_script.rb") if path.nil?
+        path = default_script_path if path.nil?
 
         script = Watchr::Script.new(path)
         class << script

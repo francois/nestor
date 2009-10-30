@@ -41,6 +41,8 @@ module Nestor
 
       raise "Destination #{path.inspect} already exists: will not overwrite" if File.file?(path)
       FileUtils.cp(Nestor::Watchers::Rails.path_to_script, path)
+
+      puts "Wrote #{options[:watcher]} script to #{path.inspect}"
     end
   end
 end
