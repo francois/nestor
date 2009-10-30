@@ -21,7 +21,8 @@ module Nestor
         def run_all
           fork do
             log "Run all tests"
-            Dir["test/**/*_test.rb"].each {|f| log(f); load f}
+            test_files = Dir["test/**/*_test.rb"]
+            test_files.each {|f| log(f); load f}
 
             ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
             test_runner = ::Nestor::Strategies::Test::TestRunner.new(nil)
@@ -29,7 +30,7 @@ module Nestor
               autorunner.runner = lambda { test_runner }
             end
 
-            report(test_runner)
+            report(test_runner, test_files)
           end
         end
 
@@ -47,7 +48,7 @@ module Nestor
               autorunner.filters << proc{|t| focuses.include?(t.method_name)} unless focuses.empty?
             end
 
-            report(test_runner)
+            report(test_runner, test_files)
           end
         end
 
@@ -56,23 +57,34 @@ module Nestor
         # Since we forked, we can't call into the Machine from the child process.  Upstream
         # communications is implemented by writing new files to the filesystem and letting
         # the parent process catch the changes.
-        def report(test_runner)
+        def report(test_runner, test_files)
           info = {"status" => test_runner.passed? ? "successful" : "failed", "failures" => {}}
           failures = info["failures"]
           test_runner.faults.each do |failure|
             filename = if failure.respond_to?(:location) then
-                         loc = failure.location.first[1..-1]
-                         loc.split(":", 2).first
+                         failure.location.detect do |loc|
+                           filename = loc.split(":", 2).first
+                           test_files.detect {|tf| filename.include?(tf)}
+                         end
                        elsif failure.respond_to?(:exception) then
-                         loc = failure.exception.backtrace.first
-                         loc.split(":", 2).first
+                         failure.exception.backtrace.detect do |loc|
+                           filename = loc.split(":", 2).first
+                           test_files.detect {|tf| filename.include?(tf)}
+                         end
                        else
                          raise "Unknown object type received as failure: #{failure.inspect} doesn't have #exception or #location methods."
                        end
 
-            filename = Pathname.new(filename)
-            filename = filename.realpath.relative_path_from(@root)
-            failures[failure.test_name.split("(", 2).first.strip] = filename
+            test_name = failure.test_name.split("(", 2).first.strip
+            if filename.nil? then
+              log("Could not map #{failure.test_name.inspect} to a specific test file: mapping to #{test_files.length}")
+              test_files.each do |tf|
+                failures[test_name] = tf
+              end
+            else
+              log("Failed #{failure.test_name.inspect} in #{filename.inspect}")
+              failures[test_name] = filename
+            end
           end
 
           File.open("tmp/nestor-results.yml", "w") {|io| io.write(info.to_yaml) }
