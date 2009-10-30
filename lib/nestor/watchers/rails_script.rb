@@ -1,4 +1,4 @@
-def log(message)
+def log(message) #:nodoc:
   @strategy.log(message)
 end
 
@@ -16,7 +16,7 @@ require "test_helper"
 end_load_at = Time.now
 log "Waiting for changes (saving #{end_load_at - start_load_at} seconds per run)..."
 
-def sendoff(timeout=0.8, path="tmp/nestor-sendoff")
+def sendoff(timeout=0.8, path="tmp/nestor-sendoff") #:nodoc:
   Thread.start(timeout, path) do |timeout, path|
     log "Sendoff pending #{timeout}..."
     sleep timeout
@@ -25,7 +25,7 @@ def sendoff(timeout=0.8, path="tmp/nestor-sendoff")
   end
 end
 
-def changed!(filename)
+def changed!(filename) #:nodoc:
   @machine.changed! filename
   sendoff
 end

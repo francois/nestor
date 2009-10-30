@@ -3,11 +3,20 @@ require "pathname"
 
 module Nestor
   module Watchers
-    # Implements the Test::Unit based backend on a plain-jane Rails install.
+    # Knows how to map file change events from Rails conventions to the corresponding test case.
     module Rails
-      # This method never returns
-      def self.run(strategy = Nestor::Strategies::Test::Unit.new(Dir.pwd))
-        script = instantiate_script
+      # Launches a Watchr::Controller to and never returns.  The Controller will
+      # listen for file change events and trigger appropriate events on the Machine.
+      #
+      # By default, the Rails watcher will use the +Test::Unit+ strategy.
+      #
+      # @option :strategy The strategy to use.
+      # @option :script The path to the Watchr script.
+      #
+      # @return Never...
+      def self.run(options={})
+        options[:strategy] = Nestor::Strategies::Test::Unit.new(Dir.pwd) if options[:strategy].nil?
+        script = instantiate_script(options[:script])
 
         strategy.log "Instantiating machine"
         script.nestor_strategy = strategy
@@ -15,8 +24,13 @@ module Nestor
         Watchr::Controller.new(script, Watchr.handler.new).run
       end
 
-      def self.instantiate_script #:nodoc:
-        script = Watchr::Script.new(Pathname.new(File.dirname(__FILE__) + "/rails_script.rb"))
+      private
+
+      def self.instantiate_script(path) #:nodoc:
+        # Use the default if none provided
+        path = Pathname.new(File.dirname(__FILE__) + "/rails_script.rb") if path.nil?
+
+        script = Watchr::Script.new(path)
         class << script
           def nestor_machine=(m)
             @machine = m

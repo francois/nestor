@@ -6,3 +6,6 @@ begin
 rescue LoadError
   # Ignore: development dependency
 end
+
+module Nestor # :nodoc:
+end

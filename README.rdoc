@@ -1,6 +1,22 @@
-= nestor
+= Nestor
 
-Description goes here.
+Nestor is your butler, always holding the your tests' door open and letting you peak inside.
+
+Nestor is a continuous testing server for Rails.  It has provisions for testing other kinds of projects, but it isn't there yet.
+
+== Getting Started
+
+  $ gem install nestor
+  $ cd railsapp
+  $ nestor start
+
+Nestor listens for file change events.  When a file is changed, it will run the tests for that file only, and then verify your whole build.  If a failure or error is found, Nestor will focus on the failing tests and files.  Changing a file that is currently unfocused tells Nestor you've cast a wider net.
+
+At this early stage, Nestor is pretty verbose regarding it's operations.  You can also enable +--debug+ mode to let the excellent [http://github.com/mynyml/watchr watchr] library give you even more information.  If you want to report a bug, please include all appropriate logs.
+
+== Continuous Testing Server
+
+Yes, I mean server in the sense that Nestor will load +test/test_helper.rb+ and run your tests by forking.  Changing +test/test_helper.rb+ or anything in +config/+ will abort Nestor.  With some more work, Nestor will be able to restart itself.  Nestor also knows about +db/schema.rb+ and will run +rake db:test:prepare+ in the advent your schema changes.
 
 == Note on Patches/Pull Requests
  
@@ -8,9 +24,9 @@ Description goes here.
 * Make your feature addition or bug fix.
 * Add tests for it. This is important so I don't break it in a
   future version unintentionally.
-* Commit, do not mess with rakefile, version, or history.
+* Commit, do not mess with Rakefile, version, or history.
   (if you want to have your own version, that is fine but
-   bump version in a commit by itself I can ignore when I pull)
+  bump version in a commit by itself I can ignore when I pull)
 * Send me a pull request. Bonus points for topic branches.
 
 == Copyright

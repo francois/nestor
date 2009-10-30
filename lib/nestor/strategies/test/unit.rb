@@ -10,11 +10,14 @@ module Nestor
           @root = Pathname.new(root).realpath
         end
 
+        # Logs a message to STDOUT.  This implementation forks, so the #log method also
+        # provides the PID of the logger.
         def log(message)
           STDOUT.printf "[%d] %s - %s\n", Process.pid, Time.now.strftime("%H:%M:%S"), message
           STDOUT.flush
         end
 
+        # Runs absolutely all tests as found by walking test/.
         def run_all
           fork do
             log "Run all tests"
@@ -30,6 +33,8 @@ module Nestor
           end
         end
 
+        # Runs only the named files, and optionally focuses on only a couple of tests
+        # within the loaded test cases.
         def run(test_files, focuses=[])
           fork do
             log "Running #{focuses.length} focused tests"
@@ -46,6 +51,11 @@ module Nestor
           end
         end
 
+        private
+
+        # Since we forked, we can't call into the Machine from the child process.  Upstream
+        # communications is implemented by writing new files to the filesystem and letting
+        # the parent process catch the changes.
         def report(test_runner)
           info = {"status" => test_runner.passed? ? "successful" : "failed", "failures" => {}}
           failures = info["failures"]
@@ -60,14 +70,21 @@ module Nestor
         end
       end
 
-      class TestRunner < ::Test::Unit::UI::Console::TestRunner
+      # A helper class that allows me to get more information from the build.
+      #
+      # This is something that definitely will change when Nestor is tested on Ruby 1.9.
+      class TestRunner < ::Test::Unit::UI::Console::TestRunner #:nodoc:
         attr_reader :faults
 
+        # This is a duck-typing method.  Test::Unit's design requiers a #run method,
+        # but it is implemented as a class method.  I fake it here to allow me to
+        # pass an instance and have the actual TestRunner instance available afterwards.
         def run(suite, output_level=NORMAL)
           @suite = suite.respond_to?(:suite) ? suite.suite : suite
           start
         end
 
+        # Returns pass/fail status.
         def passed?
           @faults.empty?
         end
