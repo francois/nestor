@@ -60,9 +60,19 @@ module Nestor
           info = {"status" => test_runner.passed? ? "successful" : "failed", "failures" => {}}
           failures = info["failures"]
           test_runner.faults.each do |failure|
-            loc = failure.location.first[1..-1]
-            filename = loc.split(":", 2).first
-            failures[failure.test_name.split("(", 2).first] = filename
+            filename = if failure.respond_to?(:location) then
+                         loc = failure.location.first[1..-1]
+                         loc.split(":", 2).first
+                       elsif failure.respond_to?(:exception) then
+                         loc = failure.exception.backtrace.first
+                         loc.split(":", 2).first
+                       else
+                         raise "Unknown object type received as failure: #{failure.inspect} doesn't have #exception or #location methods."
+                       end
+
+            filename = Pathname.new(filename)
+            filename = filename.realpath.relative_path_from(@root)
+            failures[failure.test_name.split("(", 2).first.strip] = filename
           end
 
           File.open("tmp/nestor-results.yml", "w") {|io| io.write(info.to_yaml) }
