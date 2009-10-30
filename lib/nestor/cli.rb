@@ -32,7 +32,7 @@ module Nestor
       else
         puts "Launching..."
       end
-      Nestor::Watchers::Rails.run(:script => Pathname.new(options[:script]))
+      Nestor::Watchers::Rails.run(:script => options[:script] ? Pathname.new(options[:script]) : nil)
     end
 
     desc("customize PATH", <<-EODESC.gsub(/^\s{6}/, ""))
