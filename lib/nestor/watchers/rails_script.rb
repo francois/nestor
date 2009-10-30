@@ -65,6 +65,10 @@ watch 'test/(?:unit|functional|integration|performance)/.*' do |md|
 end
 
 watch 'tmp/nestor-results.yml' do |md|
+  # Since we received the results, we must receive our child process' status, or
+  # else we'll have zombie processes lying around
+  Thread.start { Process.wait }
+
   info = YAML.load_file(md[0])
   log "New results in: #{info.inspect}"
   failures = info["failures"]
