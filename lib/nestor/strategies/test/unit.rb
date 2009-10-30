@@ -18,7 +18,7 @@ module Nestor
         def run_all
           fork do
             log "Run all tests"
-            Dir["test/**/*_test.rb"].each {|f| log(f); load f; break}
+            Dir["test/**/*_test.rb"].each {|f| log(f); load f}
 
             ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
             test_runner = ::Nestor::Strategies::Test::TestRunner.new(nil)
