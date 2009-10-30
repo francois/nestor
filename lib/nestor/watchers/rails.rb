@@ -10,12 +10,12 @@ module Nestor
       #
       # By default, the Rails watcher will use the +Test::Unit+ strategy.
       #
-      # @option :strategy The strategy to use.
-      # @option :script The path to the Watchr script.
+      # @option options :strategy [Nestor::Strategies] The strategy to use.  Must be an instance of a class that implements the protocol defined in Nestor::Strategies.
+      # @option options :script The path to the Watchr script.
       #
       # @return Never...
       def self.run(options={})
-        options[:strategy] = Nestor::Strategies::Test::Unit.new(Dir.pwd) if options[:strategy].nil?
+        strategy = options[:strategy] || Nestor::Strategies::Test::Unit.new(Dir.pwd)
         script = instantiate_script(options[:script])
 
         strategy.log "Instantiating machine"
