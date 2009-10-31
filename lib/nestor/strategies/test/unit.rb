@@ -62,15 +62,14 @@ module Nestor
           filename = if failure.respond_to?(:location) then
                        failure.location.map do |loc|
                          filename = loc.split(":", 2).first
-                         data = test_files.detect {|tf| filename.include?(tf)}
-                         data
+                         test_files.detect {|tf| filename.include?(tf)}
                        end.compact.first
                      elsif failure.respond_to?(:exception) then
-                       failure.exception.backtrace.detect do |loc|
+                       failure.exception.backtrace.map do |loc|
                          filename = loc.split(":", 2).first
                          loc = loc[1..-1] if loc[0,1] == "/"
                          test_files.detect {|tf| filename.include?(tf)}
-                       end
+                       end.compact.first
                      else
                        raise "Unknown object type received as failure: #{failure.inspect} doesn't have #exception or #location methods."
                      end
@@ -89,7 +88,7 @@ module Nestor
           info = {"status" => test_runner.passed? ? "successful" : "failed", "failures" => {}}
           failures = info["failures"]
           test_runner.faults.each do |failure|
-            filename, test_name = self.class.parse_failure(failure)
+            filename, test_name = self.class.parse_failure(failure, test_files)
             if filename.nil? then
               log("Could not map #{failure.test_name.inspect} to a specific test file: mapping to #{test_files.length}")
               test_files.each do |tf|
