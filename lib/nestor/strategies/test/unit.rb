@@ -90,10 +90,8 @@ module Nestor
           test_runner.faults.each do |failure|
             filename, test_name = self.class.parse_failure(failure, test_files)
             if filename.nil? then
-              log("Could not map #{failure.test_name.inspect} to a specific test file: mapping to #{test_files.length}")
-              test_files.each do |tf|
-                failures[test_name] = tf
-              end
+              log("Could not map #{failure.test_name.inspect} to a specific test file: mapping to #{test_files.length} files")
+              failures[test_name] = test_files
             else
               log("Failed #{failure.test_name.inspect} in #{filename.inspect}")
               failures[test_name] = filename

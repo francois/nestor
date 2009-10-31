@@ -77,7 +77,7 @@ watch 'tmp/nestor-results.yml' do |md|
   info = YAML.load_file(md[0])
   log "New results in: #{info.inspect}"
   failures = info["failures"]
-  @machine.send("run_#{info["status"]}!", failures.values.uniq, failures.keys)
+  @machine.send("run_#{info["status"]}!", failures.values.flatten.uniq, failures.keys)
 end
 
 watch 'tmp/nestor-sendoff' do |_|
