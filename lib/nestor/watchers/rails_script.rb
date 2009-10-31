@@ -26,6 +26,7 @@ def sendoff(timeout=0.8, path="tmp/nestor-sendoff") #:nodoc:
 end
 
 def changed!(filename) #:nodoc:
+  return if File.directory?(filename)
   @machine.changed! filename
   sendoff
 end
