@@ -5,12 +5,12 @@ module Nestor
   module Watchers
     # Knows how to map file change events from Rails conventions to the corresponding test case.
     module Rails
-      # Launches a Watchr::Controller to and never returns.  The Controller will
+      # Launches a {Watchr::Controller} to and never returns.  The Controller will
       # listen for file change events and trigger appropriate events on the Machine.
       #
-      # By default, the Rails watcher will use the +Test::Unit+ strategy.
+      # By default, the Rails watcher will use the +{Nestor::Strategies::Test::Unit}+ strategy.
       #
-      # @option options :strategy [Nestor::Strategies] The strategy to use.  Must be an instance of a class that implements the protocol defined in Nestor::Strategies.
+      # @option options :strategy [Nestor::Strategies] ({Nestor::Strategies::Test::Unit}) The strategy to use.  Must be an instance of a class that implements the protocol defined in {Nestor::Strategies}.
       # @option options :script The path to the Watchr script.
       #
       # @return Never...

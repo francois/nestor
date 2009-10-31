@@ -47,7 +47,7 @@ module Nestor
     # The list of failing tests or examples being focused on right now
     attr_reader :focuses       # :nodoc:
 
-    # +strategy+ is required, and must implement a couple of methods.  See Nestor::Strategies for the required calls.
+    # +strategy+ is required, and must implement a couple of methods.  See {Nestor::Strategies} for the required calls.
     def initialize(strategy)
       super() # Have to specify no-args, or else it'll raise an ArgumentError
 
