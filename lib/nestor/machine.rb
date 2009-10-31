@@ -73,6 +73,7 @@ module Nestor
       end
 
       event :file_changed do
+        transition [:running_all, :running_multi, :running_focused] => same
         transition [:run_focused, :run_focused_pending] => :run_focused_pending, :if => :changed_file_in_focused_files?
         transition [:run_focused_pending, :run_multi_pending, :run_focused] => :run_multi_pending
         transition :green => :run_multi_pending
