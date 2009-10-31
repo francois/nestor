@@ -59,6 +59,11 @@ watch 'test/test_helper\.rb' do |md|
   @machine.reset!
 end
 
+watch 'db/schema.rb' do |_|
+  log "Detected changed schema: preparing test DB"
+  system("rake db:test:prepare")
+end
+
 watch 'test/(?:unit|functional|integration|performance)/.*' do |md|
   log "#{md[0].inspect} => #{md[0].inspect}"
   changed! md[0]
