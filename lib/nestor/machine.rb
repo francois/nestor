@@ -79,6 +79,7 @@ module Nestor
       end
 
       event :run do
+        transition [:running_all, :running_multi, :running_focused] => same
         transition :run_focused_pending => :running_focused
         transition :run_multi_pending => :running_multi
       end
