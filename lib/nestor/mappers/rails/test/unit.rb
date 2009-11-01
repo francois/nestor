@@ -13,6 +13,30 @@ end
 module Nestor::Mappers::Rails
   module Test
     class Unit
+      # Launches a {Watchr::Controller} to and never returns.  The Controller will
+      # listen for file change events and trigger appropriate events on the Machine.
+      #
+      # By default, the Rails watcher will use the +{Nestor::Strategies::Test::Unit}+ strategy.
+      #
+      # @option options :strategy [Nestor::Strategies] ({Nestor::Strategies::Test::Unit}) The strategy to use.  Must be an instance of a class that implements the protocol defined in {Nestor::Strategies}.
+      # @option options :script The path to the Watchr script.
+      #
+      # @return Never...
+      def self.run(options={})
+        strategy = options[:strategy] || Nestor::Strategies::Test::Unit.new(Dir.pwd)
+        script = instantiate_script(options[:script])
+
+        strategy.log "Instantiating machine"
+        script.nestor_strategy = strategy
+        script.nestor_machine  = Nestor::Machine.new(strategy)
+        Watchr::Controller.new(script, Watchr.handler.new).run
+      end
+
+      # Returns the path to the script this {Mapper} uses.
+      def self.path_to_script
+        default_script_path
+      end
+
       # Utility method to extract data from a Test::Unit failure.
       #
       # @param failure [Test::Unit::Failure, Test::Unit::Error] The Test::Unit failure or error from which to extract information.
@@ -82,23 +106,95 @@ module Nestor::Mappers::Rails
         end
       end
 
+      # Given a path, returns an Array of strings for the tests that should be run.
+      #
+      # This implementation maps +app/models+ to +test/unit+, +app/controllers+ and +app/views+ to +test/functional+.
+      # It is not the responsibility of #map to determine if the files actually exist on disk.  The {Nestor::Machine}
+      # will verify the files exist before attempting to run them.
+      #
+      #
+      # @example
+      # 
+      #   mapper = Nestor::Mappers::Rails::Test::Unit.new
+      #   mapper.map("app/models/user.rb")
+      #   #=> ["test/unit/user_test.rb"]
+      #   mapper.map("app/helpers/users_helper.rb")
+      #   #=> ["test/unit/helpers/users_helper.rb", "test/functional/users_controller_test.rb"]
+      #
+      #   # Mapper is saying to re-run all functional tests
+      #   mapper.map("app/controller/application_controller.rb")
+      #   #=> ["test/functional/"]
+      #
+      #   # Mapper is saying to run all tests
+      #   mapper.map("config/environment.rb")
+      #   #=> []
+      #
+      # @param path [String] A relative path to a file in the project.
+      # @return [Array<String>, nil] One or more paths the {Nestor::Machine} should run in response to the change.
+      #   It is entirely possible and appropriate that this method return an empty array, which implies to run
+      #   all tests.  If a path points to a directory, this implies running all tests under that directory.
+      #   Returning +nil+ implies no tests need to run (such as when editing a README).
       def map(path)
         case path
-        when %r{^app/.+/(.+_observer)\.rb$} # Has to be first, or app/models might kick in first
+        when %r{^app/.+/(.+_observer)\.rb$}              # Has to be first, or app/models might kick in first
           orig, plain  = $1, $1.sub("_observer", "")
           ["test/unit/#{orig}_test.rb", "test/unit/#{plain}_test.rb"]
+
+        when "app/controllers/application_controller.rb" # Again, special cases first
+          ["test/functional/"]
+
+        when "app/helpers/application_helper.rb"         # Again, special cases first
+          ["test/unit/helpers/", "test/functional/"]
+
         when %r{^app/models/(.+)\.rb$}, %r{^lib/(.+)\.rb$}
           ["test/unit/#{$1}_test.rb"]
+
         when %r{^app/controllers/(.+)\.rb$}
           ["test/functional/#{$1}_test.rb"]
+
         when %r{^app/views/(.+)/(.+)\.\w+$}
           ["test/functional/#{$1}_controller_test.rb"]
-        else
+
+        when %r{^app/helpers/(.+)_helper\.rb$}
+          ["test/unit/helpers/#{$1}_helper_test.rb", "test/functional/#{$1}_controller_test.rb"]
+
+        when %r{^(?:test/test_helper.rb|config/.+\.(?:rb|ya?ml|xml)|db/schema\.rb)$}
+          # Rerun all tests because something fundamental changed
+          []
+
+        when %r{^test/.+_test.rb}
+          # Rerun the sole test when it's a test
           Array(path)
+
+        else
+          # I don't know how to map this, so it's probably a README or something
+          nil
         end
       end
 
       private
+
+      def self.default_script_path
+        Pathname.new(File.dirname(__FILE__) + "/rails_test_unit.rb") 
+      end
+
+      def self.instantiate_script(path) #:nodoc:
+        # Use the default if none provided
+        path = default_script_path if path.nil?
+
+        script = Watchr::Script.new(path)
+        class << script
+          def nestor_machine=(m)
+            @machine = m
+          end
+
+          def nestor_strategy=(s)
+            @strategy = s
+          end
+        end
+
+        script
+      end
 
       # Since we forked, we can't call into the Machine from the child process.  Upstream
       # communications is implemented by writing new files to the filesystem and letting

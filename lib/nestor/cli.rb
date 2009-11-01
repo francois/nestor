@@ -3,27 +3,15 @@ require "thor"
 
 module Nestor
   class Cli < Thor # :nodoc:
+    default_task :start
+
     desc("start", <<-EODESC.gsub(/^\s{6}/, ""))
       Starts a continuous test server.
     EODESC
-    method_options :strategy => "test/unit", :watcher => "rails", :script => nil, :debug => false, :include => []
+    method_options :framework => "rails", :testlib => "test/unit", :script => nil, :debug => false, :include => []
     def start
-      puts "Using #{options[:strategy].inspect} strategy"
-      begin
-        # Try the internal version
-        require "nestor/strategies/#{options[:strategy]}"
-      rescue LoadError
-        # Else fallback to something I'm not aware of right now
-        require options[:strategy]
-      end
-
-      puts "Using #{options[:watcher].inspect} watcher"
-      begin
-        require "nestor/watchers/#{options[:watcher]}"
-      rescue LoadError
-        # Fallback to something external again
-        require options[:watcher]
-      end
+      puts "Using #{options[:framework].inspect} framework with #{options[:testlib].inspect} as the testing library"
+      require_path(options[:framework], options[:testlib])
 
       Watchr.options.debug = options[:debug]
 
@@ -32,7 +20,8 @@ module Nestor
       else
         puts "Launching..."
       end
-      Nestor::Watchers::Rails.run(:script => options[:script] ? Pathname.new(options[:script]) : nil)
+
+      mapper_class(options[:framework], options[:testlib]).run(:script => options[:script] ? Pathname.new(options[:script]) : nil)
     end
 
     desc("customize PATH", <<-EODESC.gsub(/^\s{6}/, ""))
@@ -40,13 +29,36 @@ module Nestor
     EODESC
     method_options :strategy => "test/unit", :watcher => "rails"
     def customize(path)
-      puts "Using #{options[:watcher].inspect} watcher"
-      require "nestor/watchers/#{options[:watcher]}"
+      puts "Using #{options[:framework].inspect} framework with #{options[:testlib].inspect} as the testing library"
+      require_path(options[:framework], options[:testlib])
 
       raise "Destination #{path.inspect} already exists: will not overwrite" if File.file?(path)
       FileUtils.cp(Nestor::Watchers::Rails.path_to_script, path)
 
       puts "Wrote #{options[:watcher]} script to #{path.inspect}"
+    end
+
+    private
+
+    def require_path(*paths)
+      require "nestor/mappers/#{paths.join("/")}"
+    rescue LoadError
+      require paths.join("/")
+    end
+
+    def mapper_class(framework, testlib)
+      [framework.split("/"), testlib.split("/")].flatten.inject(Nestor::Mappers) do |root, component|
+        root.const_get(camelize(component))
+      end
+    end
+
+    # Copied from ActiveSupport 2.3.4
+    def camelize(lower_case_and_underscored_word, first_letter_in_uppercase = true) #:nodoc:
+      if first_letter_in_uppercase
+        lower_case_and_underscored_word.to_s.gsub(/\/(.?)/) { "::#{$1.upcase}" }.gsub(/(?:^|_)(.)/) { $1.upcase }
+      else
+        lower_case_and_underscored_word.first.downcase + camelize(lower_case_and_underscored_word)[1..-1]
+      end
     end
   end
 end
