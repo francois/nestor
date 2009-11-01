@@ -10,8 +10,9 @@ begin
     gem.email = "francois@teksol.info"
     gem.homepage = "http://github.com/francois/nestor"
     gem.authors = ["François Beausoleil"]
-    gem.add_development_dependency "rspec"
-    gem.add_development_dependency "yard"
+    gem.add_development_dependency "rspec", ">= 1.2.9"
+    gem.add_development_dependency "yard", ">= 0.2.3.5"
+    gem.add_development_dependency "riot", ">= 0.9.12"
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
 
     gem.add_dependency "watchr", ">= 0.5.7"
@@ -22,6 +23,13 @@ begin
   Jeweler::GemcutterTasks.new
 rescue LoadError
   puts "Jeweler (or a dependency) not available. Install it with: sudo gem install jeweler"
+end
+
+require 'rake/testtask'
+Rake::TestTask.new(:test) do |t|
+  t.libs << "test"
+  t.pattern = "test/**/*_test.rb"
+  t.verbose = true
 end
 
 require 'spec/rake/spectask'
@@ -38,6 +46,7 @@ Spec::Rake::SpecTask.new(:rcov) do |spec|
 end
 
 task :spec => :check_dependencies
+task :test => :check_dependencies
 
 begin
   require 'reek/rake_task'
@@ -65,6 +74,7 @@ rescue LoadError
 end
 
 task :default => :spec
+task :default => :test
 
 begin
   require 'yard'
