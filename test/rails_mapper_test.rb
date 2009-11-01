@@ -1,8 +1,8 @@
 require "test_helper"
-require "nestor/mappers/rails"
+require "nestor/mappers/rails/test/unit"
 
-context "Nestor::Mappers::Rails" do
-  setup { Nestor::Mappers::Rails.new }
+context "Nestor::Mappers::Rails::Test::Unit" do
+  setup { Nestor::Mappers::Rails::Test::Unit.new }
 
   context "#map" do
     should_map \
