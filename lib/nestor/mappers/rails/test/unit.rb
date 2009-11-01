@@ -13,28 +13,9 @@ end
 module Nestor::Mappers::Rails
   module Test
     class Unit
-      # Launches a {Watchr::Controller} to and never returns.  The Controller will
-      # listen for file change events and trigger appropriate events on the Machine.
-      #
-      # By default, the Rails watcher will use the +{Nestor::Strategies::Test::Unit}+ strategy.
-      #
-      # @option options :strategy [Nestor::Strategies] ({Nestor::Strategies::Test::Unit}) The strategy to use.  Must be an instance of a class that implements the protocol defined in {Nestor::Strategies}.
-      # @option options :script The path to the Watchr script.
-      #
-      # @return Never...
-      def self.run(options={})
-        strategy = options[:strategy] || Nestor::Strategies::Test::Unit.new(Dir.pwd)
-        script = instantiate_script(options[:script])
-
-        strategy.log "Instantiating machine"
-        script.nestor_strategy = strategy
-        script.nestor_machine  = Nestor::Machine.new(strategy)
-        Watchr::Controller.new(script, Watchr.handler.new).run
-      end
-
       # Returns the path to the script this {Mapper} uses.
-      def self.path_to_script
-        default_script_path
+      def self.default_script_path
+        Pathname.new(File.dirname(__FILE__) + "/rails_test_unit.rb")
       end
 
       # Utility method to extract data from a Test::Unit failure.
@@ -79,7 +60,7 @@ module Nestor::Mappers::Rails
           test_files.each {|f| log(f); load f}
 
           ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
-          test_runner = ::Nestor::Strategies::Test::TestRunner.new(nil)
+          test_runner = ::Nestor::Mappers::Rails::Test::TestRunner.new(nil)
           result = ::Test::Unit::AutoRunner.run(false, nil, []) do |autorunner|
             autorunner.runner = lambda { test_runner }
           end
@@ -96,7 +77,7 @@ module Nestor::Mappers::Rails
           test_files.each {|f| log(f); load f}
 
           ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
-          test_runner = ::Nestor::Strategies::Test::TestRunner.new(nil)
+          test_runner = ::Nestor::Mappers::Rails::Test::TestRunner.new(nil)
           result = ::Test::Unit::AutoRunner.run(false, nil, []) do |autorunner|
             autorunner.runner = lambda { test_runner }
             autorunner.filters << proc{|t| focuses.include?(t.method_name)} unless focuses.empty?
@@ -172,29 +153,11 @@ module Nestor::Mappers::Rails
         end
       end
 
+      def default_script_path
+        self.class.default_script_path
+      end
+
       private
-
-      def self.default_script_path
-        Pathname.new(File.dirname(__FILE__) + "/rails_test_unit.rb") 
-      end
-
-      def self.instantiate_script(path) #:nodoc:
-        # Use the default if none provided
-        path = default_script_path if path.nil?
-
-        script = Watchr::Script.new(path)
-        class << script
-          def nestor_machine=(m)
-            @machine = m
-          end
-
-          def nestor_strategy=(s)
-            @strategy = s
-          end
-        end
-
-        script
-      end
 
       # Since we forked, we can't call into the Machine from the child process.  Upstream
       # communications is implemented by writing new files to the filesystem and letting

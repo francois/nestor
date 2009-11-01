@@ -1,5 +1,5 @@
 def log(message) #:nodoc:
-  @strategy.log(message)
+  @mapper.log(message)
 end
 
 RAILS_ENV = "test" unless defined?(RAILS_ENV)

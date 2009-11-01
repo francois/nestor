@@ -8,11 +8,8 @@ module Nestor
     desc("start", <<-EODESC.gsub(/^\s{6}/, ""))
       Starts a continuous test server.
     EODESC
-    method_options :framework => "rails", :testlib => "test/unit", :script => nil, :debug => false, :include => []
+    method_options :framework => "rails", :testlib => "test/unit", :script => nil, :debug => false, :quick => false
     def start
-      puts "Using #{options[:framework].inspect} framework with #{options[:testlib].inspect} as the testing library"
-      require_path(options[:framework], options[:testlib])
-
       Watchr.options.debug = options[:debug]
 
       if options[:script] then
@@ -21,21 +18,31 @@ module Nestor
         puts "Launching..."
       end
 
-      mapper_class(options[:framework], options[:testlib]).run(:script => options[:script] ? Pathname.new(options[:script]) : nil)
+      puts "Using #{options[:framework].inspect} framework with #{options[:testlib].inspect} as the testing library"
+      mapper      = mapper_instance(options[:framework], options[:testlib])
+      machine     = Nestor::Machine.new(mapper, :initial_state => options[:quick] ? :green : :booting)
+
+      script_path = options[:script] ? Pathname.new(options[:script]) : nil
+      script      = instantiate_script(script_path || mapper.default_script_path)
+
+      script.nestor_mapper  = mapper
+      script.nestor_machine = machine
+      Watchr::Controller.new(script, Watchr.handler.new).run
     end
 
     desc("customize PATH", <<-EODESC.gsub(/^\s{6}/, ""))
       Copies the named script file to PATH to allow customizing.
+      Will not overwrite existing files, unless --force is specified.
     EODESC
-    method_options :strategy => "test/unit", :watcher => "rails"
+    method_options :framework => "rails", :testlib => "test/unit", :force => false
     def customize(path)
+      raise "Destination #{path.inspect} already exists: will not overwrite" if !options[:force] && File.file?(path)
+
       puts "Using #{options[:framework].inspect} framework with #{options[:testlib].inspect} as the testing library"
-      require_path(options[:framework], options[:testlib])
+      klass = mapper_class(options[:framework], options[:testlib])
+      FileUtils.cp(klass.default_script_path, path)
 
-      raise "Destination #{path.inspect} already exists: will not overwrite" if File.file?(path)
-      FileUtils.cp(Nestor::Watchers::Rails.path_to_script, path)
-
-      puts "Wrote #{options[:watcher]} script to #{path.inspect}"
+      puts "Wrote #{klass.name} script to #{path.inspect}"
     end
 
     private
@@ -47,13 +54,33 @@ module Nestor
     end
 
     def mapper_class(framework, testlib)
+      require_path(options[:framework], options[:testlib])
       [framework.split("/"), testlib.split("/")].flatten.inject(Nestor::Mappers) do |root, component|
         root.const_get(camelize(component))
       end
     end
 
+    def mapper_instance(framework, testlib)
+      mapper_class(framework, testlib).new
+    end
+
+    def instantiate_script(path)
+      script = Watchr::Script.new(path)
+      class << script
+        def nestor_machine=(m)
+          @machine = m
+        end
+
+        def nestor_mapper=(s)
+          @mapper = s
+        end
+      end
+
+      script
+    end
+
     # Copied from ActiveSupport 2.3.4
-    def camelize(lower_case_and_underscored_word, first_letter_in_uppercase = true) #:nodoc:
+    def camelize(lower_case_and_underscored_word, first_letter_in_uppercase = true)
       if first_letter_in_uppercase
         lower_case_and_underscored_word.to_s.gsub(/\/(.?)/) { "::#{$1.upcase}" }.gsub(/(?:^|_)(.)/) { $1.upcase }
       else

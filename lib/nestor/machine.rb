@@ -48,7 +48,7 @@ module Nestor
     attr_reader :focuses       # :nodoc:
 
     # +strategy+ is required, and must implement a couple of methods.  See {Nestor::Strategies} for the required calls.
-    def initialize(strategy)
+    def initialize(strategy, options={})
       super() # Have to specify no-args, or else it'll raise an ArgumentError
 
       @strategy = strategy
