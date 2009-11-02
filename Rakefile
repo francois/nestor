@@ -10,7 +10,6 @@ begin
     gem.email = "francois@teksol.info"
     gem.homepage = "http://github.com/francois/nestor"
     gem.authors = ["François Beausoleil"]
-    gem.add_development_dependency "rspec", ">= 1.2.9"
     gem.add_development_dependency "yard", ">= 0.2.3.5"
     gem.add_development_dependency "riot", ">= 0.9.12"
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
@@ -32,20 +31,6 @@ Rake::TestTask.new(:test) do |t|
   t.verbose = true
 end
 
-require 'spec/rake/spectask'
-Spec::Rake::SpecTask.new(:spec) do |spec|
-  spec.libs << 'lib' << 'spec'
-  spec.ruby_opts = ["-rubygems"]
-  spec.spec_files = FileList['spec/**/*_spec.rb']
-end
-
-Spec::Rake::SpecTask.new(:rcov) do |spec|
-  spec.libs << 'lib' << 'spec'
-  spec.pattern = 'spec/**/*_spec.rb'
-  spec.rcov = true
-end
-
-task :spec => :check_dependencies
 task :test => :check_dependencies
 
 begin
@@ -73,7 +58,6 @@ rescue LoadError
   end
 end
 
-task :default => :spec
 task :default => :test
 
 begin

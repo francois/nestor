@@ -36,3 +36,53 @@ context "Nestor::Mappers::Rails::Test::Unit" do
       "README.rdoc"                               => nil
   end
 end
+
+context "A Test::Unit failure after being parsed by Rails::Test::Unit" do
+  setup do
+    failure = Object.new
+    class << failure
+      def location
+        ["/test/functional/api/templates_controller_test.rb:12:in `__bind_1256961206_373905'",
+          "/Library/Ruby/Gems/1.8/gems/thoughtbot-shoulda-2.10.2/lib/shoulda/context.rb:351:in `call'",
+          "/Library/Ruby/Gems/1.8/gems/thoughtbot-shoulda-2.10.2/lib/shoulda/context.rb:351:in `test: Api::TemplatesController should flunk. '",
+          "/Users/francois/Projects/nestor/lib/nestor/strategies/test/unit.rb:109:in `run'"]
+      end
+
+      def test_name
+        "test: Api::TemplatesController should flunk. (Api::TemplatesControllerTest)"
+      end
+    end
+
+    test_files = ["test/functional/api/templates_controller_test.rb"]
+
+    Nestor::Mappers::Rails::Test::Unit.parse_failure(failure, test_files)
+  end
+
+  should("return the filename as #first")   { topic.first }.equals("test/functional/api/templates_controller_test.rb")
+  should("return the test's name as #last") { topic.last  }.equals("test: Api::TemplatesController should flunk")
+end
+
+context "A Test::Unit error after being parsed by Rails::Test::Unit" do
+  setup do
+    exception = RuntimeError.new("bad")
+    exception.set_backtrace(["./test/functional/api/templates_controller_test.rb:12:in `__bind_1256962198_402597'",
+                             "/Library/Ruby/Gems/1.8/gems/thoughtbot-shoulda-2.10.2/lib/shoulda/context.rb:351:in `call'",
+                             "/Library/Ruby/Gems/1.8/gems/thoughtbot-shoulda-2.10.2/lib/shoulda/context.rb:351:in `test: Api::TemplatesController should flunk. '",
+                             "/Library/Ruby/Gems/1.8/gems/activesupport-2.3.4/lib/active_support/testing/setup_and_teardown.rb:62:in `__send__'",
+                             "/Library/Ruby/Gems/1.8/gems/activesupport-2.3.4/lib/active_support/testing/setup_and_teardown.rb:62:in `run'"])
+
+    failure = Object.new
+    class << failure
+      attr_accessor :exception, :test_name
+    end
+    failure.exception = exception
+    failure.test_name = "test: Api::TemplatesController should flunk. (Api::TemplatesControllerTest)"
+
+    test_files = ["test/functional/api/templates_controller_test.rb"]
+
+    Nestor::Mappers::Rails::Test::Unit.parse_failure(failure, test_files)
+  end
+
+  should("return the filename as #first")   { topic.first }.equals("test/functional/api/templates_controller_test.rb")
+  should("return the test's name as #last") { topic.last  }.equals("test: Api::TemplatesController should flunk")
+end
