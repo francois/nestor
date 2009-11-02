@@ -27,6 +27,7 @@ end
 require 'rake/testtask'
 Rake::TestTask.new(:test) do |t|
   t.libs << "test"
+  Dir["vendor/*/lib"].each {|lib| t.libs << lib}
   t.pattern = "test/**/*_test.rb"
   t.verbose = true
 end
