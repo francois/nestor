@@ -31,7 +31,7 @@ module Nestor
       machine     = Nestor::Machine.new(mapper, :quick => options[:quick])
 
       script_path = options[:script] ? Pathname.new(options[:script]) : nil
-      script      = instantiate_script(script_path || mapper.default_script_path)
+      script      = Nestor::Script.new(script_path || mapper.default_script_path)
 
       script.nestor_mapper  = mapper
       script.nestor_machine = machine
@@ -70,21 +70,6 @@ module Nestor
 
     def mapper_instance(framework, testlib)
       mapper_class(framework, testlib).new
-    end
-
-    def instantiate_script(path)
-      script = Watchr::Script.new(path)
-      class << script
-        def nestor_machine=(m)
-          @machine = m
-        end
-
-        def nestor_mapper=(s)
-          @mapper = s
-        end
-      end
-
-      script
     end
 
     # Copied from ActiveSupport 2.3.4

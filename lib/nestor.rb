@@ -1,5 +1,6 @@
 require "watchr"
 require "nestor/machine"
+require "nestor/script"
 
 begin
   require "ruby-debug"
