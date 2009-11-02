@@ -57,7 +57,7 @@ module Nestor::Mappers::Rails
       def run_all
         Slave.object do
           log "Run all tests"
-          test_files = load_test_files(["test/"])
+          test_files = load_test_files(["test"])
 
           ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
           test_runner = ::Nestor::Mappers::Rails::Test::TestRunner.new(nil)
