@@ -64,6 +64,7 @@ module Nestor
     state_machine :initial => lambda {|machine| machine.options[:quick] ? :green : :booting} do
       event :ready do
         transition :booting => :running_all
+        transition :green   => same # Quick boot: skips initial test run
       end
 
       event :failed do

@@ -7,6 +7,10 @@ module Nestor
 
     desc("start", <<-EODESC.gsub(/^\s{6}/, ""))
       Starts a continuous test server.
+
+      Specify the framework and test library using --framework and --testlib.
+      Use --quick to boot without running the full test suite on startup.
+      --debug writes extra Watchr debug messages to STDOUT.
     EODESC
     method_options :framework => "rails", :testlib => "test/unit", :script => nil, :debug => false, :quick => false
     def start
@@ -20,7 +24,7 @@ module Nestor
 
       puts "Using #{options[:framework].inspect} framework with #{options[:testlib].inspect} as the testing library"
       mapper      = mapper_instance(options[:framework], options[:testlib])
-      machine     = Nestor::Machine.new(mapper, :initial_state => options[:quick] ? :green : :booting)
+      machine     = Nestor::Machine.new(mapper, :quick => options[:quick])
 
       script_path = options[:script] ? Pathname.new(options[:script]) : nil
       script      = instantiate_script(script_path || mapper.default_script_path)
