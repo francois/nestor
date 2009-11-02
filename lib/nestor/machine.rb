@@ -100,6 +100,11 @@ module Nestor
       after_transition  :on  => :file_changed,    :do => :add_changed_file_to_focused_files
     end
 
+    # Delegate to +@mapper+.
+    def log(*args)
+      @mapper.log(*args)
+    end
+
     # Indicates the run was succesful: a green build.  This does not indicate that the
     # whole build was successful: only that the files that ran last were successful.
     def run_successful!(files, tests)

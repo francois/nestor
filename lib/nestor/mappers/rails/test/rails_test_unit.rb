@@ -1,5 +1,5 @@
 def log(message) #:nodoc:
-  @mapper.log(message)
+  @machine.log(message)
 end
 
 RAILS_ENV = "test" unless defined?(RAILS_ENV)
@@ -18,7 +18,7 @@ log "Waiting for changes (saving #{end_load_at - start_load_at} seconds per run)
 
 def sendoff(timeout=0.8, path="tmp/nestor-sendoff") #:nodoc:
   Thread.start(timeout, path) do |timeout, path|
-    log "Sendoff pending #{timeout}..."
+    log "Sendoff pending in #{timeout}s..."
     sleep timeout
     File.open(path, "w") {|io| io.write(rand.to_s)}
     log "Sendoff fired on #{path}"
@@ -31,48 +31,28 @@ def changed!(filename) #:nodoc:
   sendoff
 end
 
-watch 'app/models/(.+)\.rb' do |md|
-  test_file = "test/unit/#{md[1]}_test.rb"
-  log "#{md[0].inspect} => #{test_file.inspect}"
-  changed! test_file if File.file?(test_file)
-end
-
-watch 'app/controllers/(.+)\.rb' do |md|
-  test_file = "test/functional/#{md[1]}_test.rb"
-  log "#{md[0].inspect} => #{test_file.inspect}"
-  changed! test_file if File.file?(test_file)
-end
-
-# It might be possible to run focused tests with the view name
-watch 'app/views/(.+)' do |md|
-  segments = md[1].split("/")
-  path     = segments[0..-2]
-  test_file = "test/functional/#{path.join("/")}_controller_test.rb"
-  log "#{md[0].inspect} => #{test_file.inspect}"
-  changed! test_file if File.file?(test_file)
-end
-
-watch 'config/' do |md|
-  @machine.reset!
-end
-
-watch 'test/test_helper\.rb' do |md|
-  @machine.reset!
-end
-
-watch 'db/schema.rb' do |_|
-  log "Detected changed schema: preparing test DB"
-  system("rake db:test:prepare")
-end
-
-watch 'test/(?:unit|functional|integration|performance)/.*' do |md|
-  log "#{md[0].inspect} => #{md[0].inspect}"
+watch 'config/(?:.+)\.(?:rb|ya?ml)' do |md|
   changed! md[0]
 end
 
+watch '(?:app|test)/.+\.rb' do |md|
+  changed! md[0]
+end
+
+watch 'app/views/.+' do |md|
+  changed! md[0]
+end
+
+watch 'db/schema.rb' do |md|
+  log "Detected changed schema: preparing test DB"
+  system("rake db:test:prepare")
+  changed! md[0]
+end
+
+# the next 2 blocks are for receiving results from the child process
 watch 'tmp/nestor-results.yml' do |md|
   # Since we received the results, we must receive our child process' status, or
-  # else we'll have zombie processes lying around
+  # else we'll leave zombie processes lying around
   Thread.start { Process.wait }
 
   info = YAML.load_file(md[0])

@@ -1,5 +1,9 @@
 module Nestor
   class Script < Watchr::Script
-    attr_accessor :nestor_machine, :nestor_mapper
+    # Let the script have a reference to the mapper, to generate events.
+    # The actual instance variable name is +@mapper+, not +@nestor_mapper+.
+    def nestor_mapper=(mapper)
+      @mapper = mapper
+    end
   end
 end
