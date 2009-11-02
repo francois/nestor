@@ -5,7 +5,7 @@ module Nestor
   #
   # == Usage
   #
-  # In the Watchr script, use +@strategy+ to access an instance of this class.
+  # In the Watchr script, use +@mapper+ to access an instance of this class.
   #
   # The available events you may call are:
   #
@@ -13,12 +13,12 @@ module Nestor
   #                   call +ready+ to indicate you are ready to process events.  The default
   #                   rails template calls #ready when +test/test_helper.rb+ is loaded.
   #
-  # <tt>changed!</tt>:: Tells the Machine a file changed.  The Watchr script and Strategy are
+  # <tt>changed!</tt>:: Tells the Machine a file changed.  The Watchr script and mapper are
   #                     responsible for assigning meaning to the file.  The default Watchr
   #                     script knows how to map model, controller and view files to given
   #                     tests, and the script thus only tells the Machine about test files.
   #                     Nothing prevents another implementation from providing the actual
-  #                     implementation files and letting the Strategy decide later what to
+  #                     implementation files and letting the mapper decide later what to
   #                     do about those.
   #
   # <tt>run_successful!</tt>:: Tells the Machine that the last build was successful.  This
@@ -29,14 +29,14 @@ module Nestor
   #                        Again, this doesn't mean the whole build failed: only the last couple
   #                        of files had something that caused a failure.
   #
-  # <tt>run!</tt>::  Tells the machine to tell the +#strategy+ to run the tests, given the current
+  # <tt>run!</tt>::  Tells the machine to tell the +#mapper+ to run the tests, given the current
   #                  state of affairs.  This might be running all tests, or a subset if the Machine
   #                  is currently focusing on some items.  A separate event is required by the
   #                  Machine to allow coalescing multiple change events together.
   #
   class Machine
     # The Machine actually delegates running the tests to another object, and this is it's reference.
-    attr_reader :strategy      # :nodoc:
+    attr_reader :mapper        # :nodoc:
 
     # The list of files we are focusing on, as received by #changed!
     attr_reader :focused_files # :nodoc:
@@ -47,11 +47,12 @@ module Nestor
     # The list of failing tests or examples being focused on right now
     attr_reader :focuses       # :nodoc:
 
-    # +strategy+ is required, and must implement a couple of methods.  See {Nestor::Strategies} for the required calls.
-    def initialize(strategy, options={})
+    # +mapper+ is required, and must implement a couple of methods.  See {Nestor::Mappers} for the required calls.
+    def initialize(mapper, options={})
+      @options = options
       super() # Have to specify no-args, or else it'll raise an ArgumentError
 
-      @strategy = strategy
+      @mapper = mapper
       @focused_files, @focuses = [], []
 
       log_state_change
@@ -119,16 +120,16 @@ module Nestor
     def run_all_tests
       reset_focused_files
       reset_focuses
-      @strategy.run_all
+      @mapper.run_all
     end
 
     def run_multi_tests
       reset_focuses
-      @strategy.run(focused_files)
+      @mapper.run(focused_files)
     end
 
     def run_focused_tests
-      @strategy.run(focused_files, focuses)
+      @mapper.run(focused_files, focuses)
     end
 
     def reset_focused_files
@@ -140,7 +141,7 @@ module Nestor
     end
 
     def changed_file_in_focused_files?
-      @strategy.log("changed_file #{changed_file}, in focused_files? #{focused_files.inspect}")
+      @mapper.log("changed_file #{changed_file}, in focused_files? #{focused_files.inspect}")
       focused_files.include?(changed_file)
     end
 
@@ -149,15 +150,15 @@ module Nestor
     end
 
     def log_state_change
-      @strategy.log("Machine entering state: #{state.inspect}")
+      @mapper.log("Machine entering state: #{state.inspect}")
     end
 
     def log_focus
-      @strategy.log("Focusing on #{focuses.inspect}")
+      @mapper.log("Focusing on #{focuses.inspect}")
     end
 
     def log_pending_run
-      @strategy.log("Run pending...  Waiting for go ahead")
+      @mapper.log("Run pending...  Waiting for go ahead")
     end
   end
 end
