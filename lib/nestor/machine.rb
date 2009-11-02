@@ -47,6 +47,9 @@ module Nestor
     # The list of failing tests or examples being focused on right now
     attr_reader :focuses       # :nodoc:
 
+    # The options as passed to #new.
+    attr_reader :options       # :nodoc:
+
     # +mapper+ is required, and must implement a couple of methods.  See {Nestor::Mappers} for the required calls.
     def initialize(mapper, options={})
       @options = options
@@ -58,9 +61,9 @@ module Nestor
       log_state_change
     end
 
-    state_machine :initial => :booting do
+    state_machine :initial => lambda {|machine| machine.options[:quick] ? :green : :booting} do
       event :ready do
-        transition any => :running_all
+        transition :booting => :running_all
       end
 
       event :failed do
