@@ -90,6 +90,10 @@ module Nestor
         transition :run_multi_pending => :running_multi
       end
 
+      event :unfocus do
+        transition any => :running_all
+      end
+
       after_transition  any  => any,              :do => :log_state_change
       after_transition  :to  => :running_all,     :do => :run_all_tests
       after_transition  :to  => :running_focused, :do => :run_focused_tests
@@ -120,8 +124,19 @@ module Nestor
 
     # Notifies the Machine that a file changed.  This might trigger a state change and schedule a build.
     def changed!(file)
-      @changed_file = file
-      file_changed!
+      mapped_files = mapper.map(file)
+      case mapped_files
+      when []  # Run all tests
+        unfocus!
+      when nil # Reset
+        reset!
+      else
+        mapped_files.each do |mapped_file|
+          mapper.log "#{file} => #{mapped_file}"
+          @changed_file = mapped_file
+          file_changed!
+        end
+      end
     end
 
     private
