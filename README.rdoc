@@ -18,6 +18,12 @@ At this early stage, Nestor is pretty verbose regarding it's operations.  You ca
 
 Yes, I mean server in the sense that Nestor will load +test/test_helper.rb+ and run your tests by forking.  Changing +test/test_helper.rb+ or anything in +config/+ will abort Nestor.  With some more work, Nestor will be able to restart itself.  Nestor also knows about +db/schema.rb+ and will run +rake db:test:prepare+ in the advent your schema changes.
 
+=== Caveats / Warnings
+
+Nestor internally uses the [http://codeforpeople.com/lib/ruby/slave/ Slave] gem to process results in a slave process.  The processes communicate using DRb.  Behavior is undefined if your own tests make use of DRb.
+
+Also, all the top-level constants that Nestor's dependencies declare will pollute your application's namespace: Watchr, Slave, StateMachine and Thor.  Should this be a problem, it would be possible to run your tests in a sub-process fashion, similar to the original Autotest.  Running in this mode, none of Nestor's constants would impact your process, except DRb, which Slave uses.
+
 == Note on Patches/Pull Requests
  
 * Fork the project.

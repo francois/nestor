@@ -109,19 +109,6 @@ module Nestor
       @mapper.log(*args)
     end
 
-    # Indicates the run was succesful: a green build.  This does not indicate that the
-    # whole build was successful: only that the files that ran last were successful.
-    def run_successful!(files, tests)
-      successful!
-    end
-
-    # Indicates there were one or more failures.  +files+ lists the actual files
-    # that failed, while +tests+ indicates the test names or examples that failed.
-    def run_failed!(files, tests)
-      @focused_files, @focuses = files, tests
-      failed!
-    end
-
     # Notifies the Machine that a file changed.  This might trigger a state change and schedule a build.
     def changed!(file)
       mapped_files = mapper.map(file)
@@ -144,16 +131,25 @@ module Nestor
     def run_all_tests
       reset_focused_files
       reset_focuses
-      @mapper.run_all
+      process!(@mapper.run_all)
     end
 
     def run_multi_tests
       reset_focuses
-      @mapper.run(focused_files)
+      process!(@mapper.run(focused_files))
     end
 
     def run_focused_tests
-      @mapper.run(focused_files, focuses)
+      process!(@mapper.run(focused_files, focuses))
+    end
+
+    def process!(info)
+      @mapper.log(info.inspect)
+      return successful! if info[:passed]
+
+      files, tests = info[:failures].values.uniq, info[:failures].keys
+      @focused_files, @focuses = files, tests
+      failed!
     end
 
     def reset_focused_files

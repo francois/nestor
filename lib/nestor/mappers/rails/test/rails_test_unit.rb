@@ -49,18 +49,7 @@ watch 'db/schema.rb' do |md|
   changed! md[0]
 end
 
-# the next 2 blocks are for receiving results from the child process
-watch 'tmp/nestor-results.yml' do |md|
-  # Since we received the results, we must receive our child process' status, or
-  # else we'll leave zombie processes lying around
-  Thread.start { Process.wait }
-
-  info = YAML.load_file(md[0])
-  log "New results in: #{info.inspect}"
-  failures = info["failures"]
-  @machine.send("run_#{info["status"]}!", failures.values.flatten.uniq, failures.keys)
-end
-
+# This is only to trigger the tests after a slight delay, but from the main thread.
 watch 'tmp/nestor-sendoff' do |_|
   log "Sendoff"
   @machine.run!

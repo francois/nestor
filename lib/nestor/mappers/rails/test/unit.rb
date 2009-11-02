@@ -1,4 +1,5 @@
 require "yaml"
+require "slave"
 require "pathname"
 require "test/unit/ui/console/testrunner"
 
@@ -54,10 +55,9 @@ module Nestor::Mappers::Rails
 
       # Runs absolutely all tests as found by walking test/.
       def run_all
-        fork do
+        Slave.object do
           log "Run all tests"
-          test_files = Dir["test/**/*_test.rb"]
-          test_files.each {|f| log(f); load f}
+          test_files = load_test_files(["test/"])
 
           ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
           test_runner = ::Nestor::Mappers::Rails::Test::TestRunner.new(nil)
@@ -65,6 +65,7 @@ module Nestor::Mappers::Rails
             autorunner.runner = lambda { test_runner }
           end
 
+          # Returns a Hash which the parent process will retrieve
           report(test_runner, test_files)
         end
       end
@@ -72,9 +73,9 @@ module Nestor::Mappers::Rails
       # Runs only the named files, and optionally focuses on only a couple of tests
       # within the loaded test cases.
       def run(test_files, focuses=[])
-        fork do
+        Slave.object do
           log "Running #{focuses.length} focused tests"
-          test_files.each {|f| log(f); load f}
+          load_test_files(test_files)
 
           ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
           test_runner = ::Nestor::Mappers::Rails::Test::TestRunner.new(nil)
@@ -83,6 +84,7 @@ module Nestor::Mappers::Rails
             autorunner.filters << proc{|t| focuses.include?(t.method_name)} unless focuses.empty?
           end
 
+          # Returns a Hash the parent process will retrieve
           report(test_runner, test_files)
         end
       end
@@ -155,12 +157,31 @@ module Nestor::Mappers::Rails
 
       private
 
-      # Since we forked, we can't call into the Machine from the child process.  Upstream
-      # communications is implemented by writing new files to the filesystem and letting
-      # the parent process catch the changes.
+      def load_test_files(test_files)
+        test_files.inject([]) do |memo, f|
+          case
+          when File.directory?(f)
+            Dir["#{f}/**/*_test.rb"].each do |f1|
+              log(f1)
+              load f1
+              memo << f1
+            end
+          when File.file?(f)
+            log(f)
+            load f
+            memo << f
+          else
+            # Ignore
+          end
+
+          memo
+        end
+      end
+
+      # Using the Slave gem, we can build and return an object to a parent process.
       def report(test_runner, test_files)
-        info = {"status" => test_runner.passed? ? "successful" : "failed", "failures" => {}}
-        failures = info["failures"]
+        info = {:passed => test_runner.passed?, :failures => {}}
+        failures = info[:failures]
         test_runner.faults.each do |failure|
           filename, test_name = self.class.parse_failure(failure, test_files)
           if filename.nil? then
@@ -172,8 +193,7 @@ module Nestor::Mappers::Rails
           end
         end
 
-        File.open("tmp/nestor-results.yml", "w") {|io| io.write(info.to_yaml) }
-        log "Wrote #{failures.length} failure(s) to tmp/nestor-results.yml"
+        info
       end
     end
 
