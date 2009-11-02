@@ -153,10 +153,6 @@ module Nestor::Mappers::Rails
         end
       end
 
-      def default_script_path
-        self.class.default_script_path
-      end
-
       private
 
       # Since we forked, we can't call into the Machine from the child process.  Upstream

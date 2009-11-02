@@ -31,7 +31,7 @@ module Nestor
       machine     = Nestor::Machine.new(mapper, :quick => options[:quick])
 
       script_path = options[:script] ? Pathname.new(options[:script]) : nil
-      script      = Nestor::Script.new(script_path || mapper.default_script_path)
+      script      = Nestor::Script.new(script_path || mapper.class.default_script_path)
 
       script.nestor_mapper  = mapper
       script.nestor_machine = machine

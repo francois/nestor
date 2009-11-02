@@ -4,6 +4,10 @@ module Nestor
   #
   # Mappers are simple objects that implement the following protocol:
   #
+  # <tt>default_script_path</tt>:: Class method to return the path to the default Watchr script.
+  #                                This *must* be a physical file on the filesystem, as Watchr
+  #                                cannot accept anything else at the moment.
+  #
   # <tt>log(message)</tt>:: Logs a simple message, either to the console or a logfile.
   #                         The {Nestor::Machine} will use the +log+ method to notify about it's
   #                         state transitions.
