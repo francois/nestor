@@ -9,6 +9,10 @@ module Nestor
       Starts a continuous test server.
 
       Specify the framework and test library using --framework and --testlib.
+      Valid options are:
+        --framework: rails
+        --testlib:   test/unit
+
       Use --quick to boot without running the full test suite on startup.
       --debug writes extra Watchr debug messages to STDOUT.
     EODESC
