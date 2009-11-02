@@ -8,7 +8,7 @@ Nestor is a continuous testing server for Rails.  It has provisions for testing 
 
   $ gem install nestor
   $ cd railsapp
-  $ nestor start
+  $ nestor
 
 Nestor listens for file change events.  When a file is changed, it will run the tests for that file only, and then verify your whole build.  If a failure or error is found, Nestor will focus on the failing tests and files.  Changing a file that is currently unfocused tells Nestor you've cast a wider net.
 
