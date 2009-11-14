@@ -17,7 +17,6 @@ begin
     gem.add_dependency "watchr", ">= 0.5.7"
     gem.add_dependency "pluginaweek-state_machine", ">= 0.8.0"
     gem.add_dependency "thor", ">= 0.11.6"
-    gem.add_dependency "slave", ">= 1.2.1"
   end
 
   Jeweler::GemcutterTasks.new
