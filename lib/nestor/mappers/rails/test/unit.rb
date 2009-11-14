@@ -55,7 +55,10 @@ module Nestor::Mappers::Rails
 
       # Runs absolutely all tests as found by walking test/.
       def run_all
-        Slave.object do
+        IO.popen("-") do |pipe|
+          return receive_results(pipe) if pipe
+          setup_lifeline
+
           log "Run all tests"
           test_files = load_test_files(["test"])
 
@@ -73,7 +76,11 @@ module Nestor::Mappers::Rails
       # Runs only the named files, and optionally focuses on only a couple of tests
       # within the loaded test cases.
       def run(test_files, focuses=[])
-        Slave.object do
+        log "Running #{test_files.inspect} focusing on #{focuses.inspect}"
+        IO.popen("-") do |pipe|
+          return receive_results(pipe) if pipe
+          setup_lifeline
+
           log "Running #{focuses.length} focused tests"
           load_test_files(test_files)
 
@@ -157,6 +164,27 @@ module Nestor::Mappers::Rails
 
       private
 
+      def setup_lifeline
+        ppid = Process.ppid
+        log "Setting up lifeline on #{Process.pid} for #{Process.ppid}"
+
+        Thread.start do
+          sleep 0.5
+          next if ppid == Process.ppid
+
+          # Parent must have died because we don't have the same parent PID
+          # Die ourselves
+          log "Dying because parent changed"
+          exit!
+        end
+      end
+
+      def receive_results(pipe)
+        data = YAML.load(pipe.read)
+        Process.wait # Ensure no zombie processes
+        data
+      end
+
       def load_test_files(test_files)
         test_files.inject([]) do |memo, f|
           case
@@ -178,7 +206,7 @@ module Nestor::Mappers::Rails
         end
       end
 
-      # Using the Slave gem, we can build and return an object to a parent process.
+      # Print to STDOUT the results of the run.  The parent's listening on the pipe to get the data.
       def report(test_runner, test_files)
         info = {:passed => test_runner.passed?, :failures => {}}
         failures = info[:failures]
@@ -193,7 +221,7 @@ module Nestor::Mappers::Rails
           end
         end
 
-        info
+        puts info.to_yaml
       end
     end
 
