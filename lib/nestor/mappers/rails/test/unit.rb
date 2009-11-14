@@ -180,9 +180,19 @@ module Nestor::Mappers::Rails
       end
 
       def receive_results(pipe)
-        data = YAML.load(pipe.read)
+        $stderr.puts "receiving on #{pipe.inspect}"
+        data = []
+        loop do
+          sleep 0.5
+          buffer = pipe.readpartial(8192)
+          data << buffer
+          $stderr.puts "received #{buffer.length} bytes: #{buffer.inspect}"
+        end
+      rescue EOFError
+        $stderr.puts "Process.wait"
         Process.wait # Ensure no zombie processes
-        data
+        $stderr.puts "YAML.load"
+        YAML.load(data.join.split("---\n").last)
       end
 
       def load_test_files(test_files)
@@ -221,6 +231,7 @@ module Nestor::Mappers::Rails
           end
         end
 
+        puts "---"
         puts info.to_yaml
       end
     end
