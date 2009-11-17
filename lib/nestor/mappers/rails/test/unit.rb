@@ -54,10 +54,9 @@ module Nestor::Mappers::Rails
 
       # Runs absolutely all tests as found by walking test/.
       def run_all
-        fork do
+        receive_results do
           log "Run all tests"
-          test_files = Dir["test/**/*_test.rb"]
-          test_files.each {|f| log(f); load f}
+          test_files = load_test_files(["test"])
 
           ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
           test_runner = ::Nestor::Mappers::Rails::Test::TestRunner.new(nil)
@@ -65,6 +64,7 @@ module Nestor::Mappers::Rails
             autorunner.runner = lambda { test_runner }
           end
 
+          # Returns a Hash which the parent process will retrieve
           report(test_runner, test_files)
         end
       end
@@ -72,9 +72,9 @@ module Nestor::Mappers::Rails
       # Runs only the named files, and optionally focuses on only a couple of tests
       # within the loaded test cases.
       def run(test_files, focuses=[])
-        fork do
+        receive_results do
           log "Running #{focuses.length} focused tests"
-          test_files.each {|f| log(f); load f}
+          load_test_files(test_files)
 
           ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
           test_runner = ::Nestor::Mappers::Rails::Test::TestRunner.new(nil)
@@ -83,6 +83,7 @@ module Nestor::Mappers::Rails
             autorunner.filters << proc{|t| focuses.include?(t.method_name)} unless focuses.empty?
           end
 
+          # Returns a Hash the parent process will retrieve
           report(test_runner, test_files)
         end
       end
@@ -155,12 +156,71 @@ module Nestor::Mappers::Rails
 
       private
 
-      # Since we forked, we can't call into the Machine from the child process.  Upstream
-      # communications is implemented by writing new files to the filesystem and letting
-      # the parent process catch the changes.
-      def report(test_runner, test_files)
-        info = {"status" => test_runner.passed? ? "successful" : "failed", "failures" => {}}
-        failures = info["failures"]
+      def setup_lifeline
+        ppid = Process.ppid
+        log "Setting up lifeline on #{Process.pid} for #{Process.ppid}"
+
+        Thread.start do
+          sleep 0.5
+          next if ppid == Process.ppid
+
+          # Parent must have died because we don't have the same parent PID
+          # Die ourselves
+          log "Dying because parent changed"
+          exit!
+        end
+      end
+
+      def receive_results
+        rd, wr = IO.pipe
+        fork do
+          log "Setting up lifeline"
+          setup_lifeline
+
+          log "Closing read-end of the pipe"
+          rd.close
+
+          log "Doing whatever..."
+          info = yield
+
+          log "Returning YAML info to parent process"
+          wr.write info.to_yaml
+        end
+
+        log "Closing write-end of the pipe"
+        wr.close
+
+        log "Waiting for child process"
+        Process.wait
+
+        info = YAML.load(rd.read)
+      end
+
+      def load_test_files(test_files)
+        test_files.inject([]) do |memo, f|
+          case
+          when File.directory?(f)
+            Dir["#{f}/**/*_test.rb"].each do |f1|
+              log(f1)
+              load f1
+              memo << f1
+            end
+          when File.file?(f)
+            log(f)
+            load f
+            memo << f
+          else
+            # Ignore
+          end
+
+          memo
+        end
+      end
+
+      # Print to STDOUT the results of the run.  The parent's listening on the pipe to get the data.
+      def report(test_runner, test_files, io=STDOUT)
+        info = {:passed => test_runner.passed?, :failures => {}}
+        failures = info[:failures]
         test_runner.faults.each do |failure|
           filename, test_name = self.class.parse_failure(failure, test_files)
           if filename.nil? then
@@ -172,8 +232,7 @@ module Nestor::Mappers::Rails
           end
         end
 
-        File.open("tmp/nestor-results.yml", "w") {|io| io.write(info.to_yaml) }
-        log "Wrote #{failures.length} failure(s) to tmp/nestor-results.yml"
+        info
       end
     end
 

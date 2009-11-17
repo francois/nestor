@@ -109,19 +109,6 @@ module Nestor
       @mapper.log(*args)
     end
 
-    # Indicates the run was succesful: a green build.  This does not indicate that the
-    # whole build was successful: only that the files that ran last were successful.
-    def run_successful!(files, tests)
-      successful!
-    end
-
-    # Indicates there were one or more failures.  +files+ lists the actual files
-    # that failed, while +tests+ indicates the test names or examples that failed.
-    def run_failed!(files, tests)
-      @focused_files, @focuses = files, tests
-      failed!
-    end
-
     # Notifies the Machine that a file changed.  This might trigger a state change and schedule a build.
     def changed!(file)
       mapped_files = mapper.map(file)
@@ -133,10 +120,15 @@ module Nestor
       else
         mapped_files.each do |mapped_file|
           mapper.log "#{file} => #{mapped_file}"
-          @changed_file = mapped_file
+          self.changed_file = mapped_file
           file_changed!
         end
       end
+    end
+
+    def changed_file=(file)
+      raise ArgumentError, "Only accepts a single file at a time, got #{file.inspect}" unless String === file
+      @changed_file = file
     end
 
     private
@@ -144,16 +136,25 @@ module Nestor
     def run_all_tests
       reset_focused_files
       reset_focuses
-      @mapper.run_all
+      process!(@mapper.run_all)
     end
 
     def run_multi_tests
       reset_focuses
-      @mapper.run(focused_files)
+      process!(@mapper.run(focused_files))
     end
 
     def run_focused_tests
-      @mapper.run(focused_files, focuses)
+      process!(@mapper.run(focused_files, focuses))
+    end
+
+    def process!(info)
+      @mapper.log(info.inspect)
+      return successful! if info[:passed]
+
+      files, tests = info[:failures].values.uniq, info[:failures].keys
+      @focused_files, @focuses = files, tests
+      failed!
     end
 
     def reset_focused_files
@@ -161,7 +162,7 @@ module Nestor
     end
 
     def add_changed_file_to_focused_files
-      @focused_files << @changed_file unless @focused_files.include?(@changed_file)
+      @focused_files << changed_file unless @focused_files.include?(changed_file)
     end
 
     def changed_file_in_focused_files?

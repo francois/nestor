@@ -16,7 +16,7 @@ module Nestor
       Use --quick to boot without running the full test suite on startup.
       --debug writes extra Watchr debug messages to STDOUT.
     EODESC
-    method_options :framework => "rails", :testlib => "test/unit", :script => nil, :debug => false, :quick => false
+    method_options :framework => "rails", :testlib => "test/unit", :script => nil, :debug => false, :quick => false, :require => []
     def start
       Watchr.options.debug = options[:debug]
 
@@ -32,6 +32,11 @@ module Nestor
 
       script_path = options[:script] ? Pathname.new(options[:script]) : nil
       script      = Nestor::Script.new(script_path || mapper.class.default_script_path)
+
+      options[:require].each do |path|
+        puts "Loading #{path.inspect} plugin"
+        require path
+      end
 
       script.nestor_machine = machine
       Watchr::Controller.new(script, Watchr.handler.new).run

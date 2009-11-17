@@ -69,3 +69,12 @@ rescue LoadError
     abort "YARD is not available. In order to run yardoc, you must: sudo gem install yard"
   end
 end
+
+namespace :state_machine do
+  task :draw do
+    $:.unshift(File.dirname(__FILE__) + "/lib")
+    require "state_machine"
+    require "nestor/machine"
+    StateMachine::Machine.draw("Nestor::Machine", {})
+  end
+end
