@@ -14,7 +14,8 @@ begin
     gem.add_development_dependency "riot", ">= 0.9.12"
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
 
-    gem.add_dependency "watchr", ">= 0.5.7"
+    # For now, I need a vendored watchr version
+    # gem.add_dependency "watchr", ">= 0.5.7"
     gem.add_dependency "state_machine", ">= 0.8.0"
     gem.add_dependency "thor", ">= 0.11.6"
   end
