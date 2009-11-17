@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{nestor}
-  s.version = "0.2.2"
+  s.version = "0.2.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Fran\303\247ois Beausoleil"]
@@ -36,6 +36,7 @@ Gem::Specification.new do |s|
      "lib/nestor/mappers/rails/test/rails_test_unit.rb",
      "lib/nestor/mappers/rails/test/unit.rb",
      "lib/nestor/script.rb",
+     "nestor.gemspec",
      "test/machine_test.rb",
      "test/rails_mapper_test.rb",
      "test/riot_macros/map.rb",
@@ -71,7 +72,7 @@ Gem::Specification.new do |s|
   ]
   s.homepage = %q{http://github.com/francois/nestor}
   s.rdoc_options = ["--charset=UTF-8"]
-  s.require_paths = ["lib"]
+  s.require_paths = ["lib", "vendor/watchr-0.5.7/lib", "vendor/watchr-0.5.7/lib"]
   s.rubygems_version = %q{1.3.5}
   s.summary = %q{Nestor keeps the place tidy by running your specs/tests everytime a file changes}
   s.test_files = [
