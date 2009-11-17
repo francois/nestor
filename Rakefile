@@ -12,7 +12,9 @@ begin
     gem.authors = ["François Beausoleil"]
     gem.add_development_dependency "yard", ">= 0.2.3.5"
     gem.add_development_dependency "riot", ">= 0.9.12"
-    # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
+    FileList["vendor/*/lib"].each do |lib|
+      gem.require_paths << lib
+    end
 
     # For now, I need a vendored watchr version
     # gem.add_dependency "watchr", ">= 0.5.7"
