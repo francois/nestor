@@ -1,5 +1,4 @@
 require "yaml"
-require "slave"
 require "pathname"
 require "test/unit/ui/console/testrunner"
 
