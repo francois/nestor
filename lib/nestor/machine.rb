@@ -120,10 +120,15 @@ module Nestor
       else
         mapped_files.each do |mapped_file|
           mapper.log "#{file} => #{mapped_file}"
-          @changed_file = mapped_file
+          self.changed_file = mapped_file
           file_changed!
         end
       end
+    end
+
+    def changed_file=(file)
+      raise ArgumentError, "Only accepts a single file at a time, got #{file.inspect}" unless String === file
+      @changed_file = file
     end
 
     private
@@ -157,7 +162,7 @@ module Nestor
     end
 
     def add_changed_file_to_focused_files
-      @focused_files << @changed_file unless @focused_files.include?(@changed_file)
+      @focused_files << changed_file unless @focused_files.include?(changed_file)
     end
 
     def changed_file_in_focused_files?
