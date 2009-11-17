@@ -54,11 +54,7 @@ module Nestor::Mappers::Rails
 
       # Runs absolutely all tests as found by walking test/.
       def run_all
-        rd, wr = IO.pipe
-        fork do
-          rd.close
-          setup_lifeline
-
+        receive_results do
           log "Run all tests"
           test_files = load_test_files(["test"])
 
@@ -69,22 +65,14 @@ module Nestor::Mappers::Rails
           end
 
           # Returns a Hash which the parent process will retrieve
-          report(test_runner, test_files, wr)
+          report(test_runner, test_files)
         end
-
-        wr.close
-        receive_results(rd)
       end
 
       # Runs only the named files, and optionally focuses on only a couple of tests
       # within the loaded test cases.
       def run(test_files, focuses=[])
-        log "Running #{test_files.inspect} focusing on #{focuses.inspect}"
-        rd, wr = IO.pipe
-        fork do
-          rd.close
-          setup_lifeline
-
+        receive_results do
           log "Running #{focuses.length} focused tests"
           load_test_files(test_files)
 
@@ -96,11 +84,8 @@ module Nestor::Mappers::Rails
           end
 
           # Returns a Hash the parent process will retrieve
-          report(test_runner, test_files, wr)
+          report(test_runner, test_files)
         end
-
-        wr.close
-        receive_results(rd)
       end
 
       # Given a path, returns an Array of strings for the tests that should be run.
@@ -186,20 +171,29 @@ module Nestor::Mappers::Rails
         end
       end
 
-      def receive_results(pipe)
-        $stderr.puts "receiving on #{pipe.inspect}"
-        data = []
-        loop do
-          sleep 0.5
-          buffer = pipe.readpartial(8192)
-          data << buffer
-          $stderr.puts "received #{buffer.length} bytes: #{buffer.inspect}"
+      def receive_results
+        rd, wr = IO.pipe
+        fork do
+          log "Setting up lifeline"
+          setup_lifeline
+
+          log "Closing read-end of the pipe"
+          rd.close
+
+          log "Doing whatever..."
+          info = yield
+
+          log "Returning YAML info to parent process"
+          wr.write info.to_yaml
         end
-      rescue EOFError
-        $stderr.puts "Process.wait"
-        Process.wait # Ensure no zombie processes
-        $stderr.puts "YAML.load"
-        YAML.load(data.join.split("---\n").last)
+
+        log "Closing write-end of the pipe"
+        wr.close
+
+        log "Waiting for child process"
+        Process.wait
+
+        info = YAML.load(rd.read)
       end
 
       def load_test_files(test_files)
@@ -238,7 +232,7 @@ module Nestor::Mappers::Rails
           end
         end
 
-        io.write info.to_yaml
+        info
       end
     end
 
