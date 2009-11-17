@@ -58,7 +58,7 @@ module Nestor::Mappers::Rails
           log "Run all tests"
           test_files = load_test_files(["test"])
 
-          ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
+          reset_db_connection_post_fork
           test_runner = ::Nestor::Mappers::Rails::Test::TestRunner.new(nil)
           result = ::Test::Unit::AutoRunner.run(false, nil, []) do |autorunner|
             autorunner.runner = lambda { test_runner }
@@ -76,7 +76,7 @@ module Nestor::Mappers::Rails
           log "Running #{focuses.length} focused tests"
           load_test_files(test_files)
 
-          ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
+          reset_db_connection_post_fork
           test_runner = ::Nestor::Mappers::Rails::Test::TestRunner.new(nil)
           result = ::Test::Unit::AutoRunner.run(false, nil, []) do |autorunner|
             autorunner.runner = lambda { test_runner }
@@ -155,6 +155,13 @@ module Nestor::Mappers::Rails
       end
 
       private
+
+      # In an ideal world, this wouldn't be required, but because we forked,
+      # the socket connection to the DB goes bad in the child process.  Reset
+      # it here so we can use it.
+      def reset_db_connection_post_fork
+        ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
+      end
 
       def setup_lifeline
         ppid = Process.ppid
