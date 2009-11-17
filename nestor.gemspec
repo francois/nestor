@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{nestor}
-  s.version = "0.2.3"
+  s.version = "0.2.4"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Fran\303\247ois Beausoleil"]
@@ -24,6 +24,7 @@ Gem::Specification.new do |s|
      "LICENSE",
      "README.rdoc",
      "Rakefile",
+     "TODO",
      "VERSION",
      "bin/nestor",
      "doc/.gitignore",
