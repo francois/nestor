@@ -55,8 +55,9 @@ module Nestor::Mappers::Rails
 
       # Runs absolutely all tests as found by walking test/.
       def run_all
-        IO.popen("-") do |pipe|
-          return receive_results(pipe) if pipe
+        rd, wr = IO.pipe
+        fork do
+          rd.close
           setup_lifeline
 
           log "Run all tests"
@@ -69,16 +70,20 @@ module Nestor::Mappers::Rails
           end
 
           # Returns a Hash which the parent process will retrieve
-          report(test_runner, test_files)
+          report(test_runner, test_files, wr)
         end
+
+        wr.close
+        receive_results(rd)
       end
 
       # Runs only the named files, and optionally focuses on only a couple of tests
       # within the loaded test cases.
       def run(test_files, focuses=[])
         log "Running #{test_files.inspect} focusing on #{focuses.inspect}"
-        IO.popen("-") do |pipe|
-          return receive_results(pipe) if pipe
+        rd, wr = IO.pipe
+        fork do
+          rd.close
           setup_lifeline
 
           log "Running #{focuses.length} focused tests"
@@ -92,8 +97,11 @@ module Nestor::Mappers::Rails
           end
 
           # Returns a Hash the parent process will retrieve
-          report(test_runner, test_files)
+          report(test_runner, test_files, wr)
         end
+
+        wr.close
+        receive_results(rd)
       end
 
       # Given a path, returns an Array of strings for the tests that should be run.
@@ -217,7 +225,7 @@ module Nestor::Mappers::Rails
       end
 
       # Print to STDOUT the results of the run.  The parent's listening on the pipe to get the data.
-      def report(test_runner, test_files)
+      def report(test_runner, test_files, io=STDOUT)
         info = {:passed => test_runner.passed?, :failures => {}}
         failures = info[:failures]
         test_runner.faults.each do |failure|
@@ -231,8 +239,7 @@ module Nestor::Mappers::Rails
           end
         end
 
-        puts "---"
-        puts info.to_yaml
+        io.write info.to_yaml
       end
     end
 
