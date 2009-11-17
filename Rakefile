@@ -24,6 +24,8 @@ rescue LoadError
   puts "Jeweler (or a dependency) not available. Install it with: sudo gem install jeweler"
 end
 
+task :release => "gemcutter:release"
+
 require 'rake/testtask'
 Rake::TestTask.new(:test) do |t|
   t.libs << "test"
