@@ -25,10 +25,11 @@ def sendoff(timeout=0.8, path="tmp/nestor-sendoff") #:nodoc:
   end
 end
 
-def changed!(filename) #:nodoc:
+def changed!(filename, should_sendoff=true) #:nodoc:
   return if File.directory?(filename)
+  log "Detected change on #{filename.inspect}"
   @machine.changed! filename
-  sendoff
+  sendoff if should_sendoff
 end
 
 watch 'config/(?:.+)\.(?:rb|ya?ml)' do |md|
@@ -46,7 +47,7 @@ end
 watch 'db/schema.rb' do |md|
   log "Detected changed schema: preparing test DB"
   system("rake db:test:prepare")
-  changed! md[0]
+  changed! md[0], false
 end
 
 # This is only to trigger the tests after a slight delay, but from the main thread.
